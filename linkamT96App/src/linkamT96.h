@@ -17,6 +17,8 @@
 #define P_StartVacuumString   "LINKAM_START_VACUUM"
 #define P_VacuumSetString     "LINKAM_VACUUM_SET"
 #define P_VacuumString        "LINKAM_VACUUM"
+#define P_VacuumUnitSetString "LINKAM_VACUUM_UNIT_SET"
+#define P_VacuumUnitString    "LINKAM_VACUUM_UNIT"
 #define P_PressureString      "LINKAM_PRESSURE"
 #define P_NameString          "LINKAM_NAME"
 #define P_SerialString        "LINKAM_SERIAL"
@@ -56,6 +58,8 @@ protected:
 	int P_StartVacuum;
 	int P_VacuumSet;
 	int P_Vacuum;
+	int P_VacuumUnitSet;
+	int P_VacuumUnit;
 	int P_Pressure;
 	int P_StageName;
 	int P_StageSerial;
