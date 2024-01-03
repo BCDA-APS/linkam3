@@ -169,15 +169,6 @@ record(bo, "$(P):STARTHEAT")
 	field(SDIS, "$(P):DISABLE")
 }
 
-record(bo, "$(P):STARTVAC")
-{
-	field(DTYP, "asynInt32")
-	field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_START_VACUUM")
-	field(ZNAM, "Off")
-	field(ONAM, "On")
-	field(SDIS, "$(P):DISABLE")
-}
-
 record(ao, "$(P):RAMPRATE:SET")
 {
 	field(DTYP, "asynFloat64")
@@ -272,31 +263,5 @@ record(ao, "$(P):LNP_SPEED:SET")
 	field(DRVH, "100")
 	field(DRVL, "0")
 	field(VAL,  "0")
-	field(SDIS, "$(P):DISABLE")
-}
-
-record(ao, "$(P):VACUUM:SET")
-{
-	field(DTYP, "asynFloat64")
-	field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_VACUUM_SET")
-	field(EGU,  "tbdn")
-	field(SDIS, "$(P):DISABLE")
-}
-
-record(ai, "$(P):VACUUM")
-{
-	field(SCAN, ".1 second")
-	field(DTYP, "asynFloat64")
-	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_VACUUM")
-	field(EGU,  "tbd")
-	field(SDIS, "$(P):DISABLE")
-}
-
-record(ai, "$(P):PRESSURE")
-{
-	field(SCAN, ".1 second")
-	field(DTYP, "asynFloat64")
-	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_PRESSURE")
-	field(EGU,  "mBar")
 	field(SDIS, "$(P):DISABLE")
 }
