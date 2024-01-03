@@ -40,6 +40,10 @@ linkamPortDriver::linkamPortDriver(const char *portName)
 	createParam(P_HoldTimeLeftString,asynParamInt32,   &P_HoldTimeLeft);
 	createParam(P_LNPSetSpeedString, asynParamInt32,   &P_LNPSetSpeed);
 	createParam(P_LNPSetModeString,  asynParamInt32,   &P_LNPSetMode);
+	createParam(P_StartVacuumString, asynParamInt32,   &P_StartVacuum);
+	createParam(P_VacuumSetString,   asynParamFloat64, &P_VacuumSet);
+	createParam(P_VacuumString,      asynParamFloat64, &P_Vacuum);
+	createParam(P_PressureString,    asynParamFloat64, &P_Pressure);
 	createParam(P_NameString,        asynParamOctet,   &P_Name);
 	createParam(P_SerialString,      asynParamOctet,   &P_Serial);
 	createParam(P_StageNameString,   asynParamOctet,   &P_StageName);
@@ -77,6 +81,10 @@ asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *valu
 		param1.vStageValueType = LinkamSDK::eStageValueTypeHeater1LNPSpeed;
 	} else if (function == P_DSC) {
 		param1.vStageValueType = LinkamSDK::eStageValueTypeDsc;
+	} else if (function == P_Vacuum) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeVacuum;
+	} else if (function == P_Pressure) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypePressure;
 	} else if (function == P_HoldTimeLeft) {
     param1.vStageValueType = LinkamSDK::eStageValueTypeRampHoldRemaining;
 	} 
@@ -189,6 +197,8 @@ asynStatus linkamPortDriver::writeFloat64(asynUser *pasynUser, epicsFloat64 valu
         	param1.vStageValueType = LinkamSDK::eStageValueTypeHeaterSetpoint;
 	} else if (function == P_HoldTimeSet) {
         	param1.vStageValueType = LinkamSDK::eStageValueTypeRampHoldTime;
+	} else if (function == P_VacuumSet) {
+        	param1.vStageValueType = LinkamSDK::eStageValueTypeVacuumSetpoint;
 	}
 
 	param2.vFloat32 = value;
@@ -229,6 +239,21 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 		}
 
 		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHeating,
+		                     handle, &result, param1, param2);
+		
+		if (!result.vBoolean) {
+			status = asynError;
+		}
+	} if (function == P_StartVacuum) {
+		param2.vUint64 = 0; /* unused */
+
+		if (value > 0){
+			param1.vBoolean = true;
+		} else {
+			param1.vBoolean = false;
+		}
+
+		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartVacuum,
 		                     handle, &result, param1, param2);
 		
 		if (!result.vBoolean) {

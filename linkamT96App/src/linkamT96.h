@@ -14,6 +14,10 @@
 #define P_LNPSetSpeedString   "LINKAM_LNP_SPEED_SET"
 #define P_HoldTimeSetString   "LINKAM_HOLD_TIME_SET"
 #define P_HoldTimeLeftString  "LINKAM_HOLD_TIME_LEFT"
+#define P_StartVacuumString   "LINKAM_START_VACUUM"
+#define P_VacuumSetString     "LINKAM_VACUUM_SET"
+#define P_VacuumString        "LINKAM_VACUUM"
+#define P_PressureString      "LINKAM_PRESSURE"
 #define P_NameString          "LINKAM_NAME"
 #define P_SerialString        "LINKAM_SERIAL"
 #define P_StageNameString     "LINKAM_STAGE_NAME"
@@ -49,6 +53,10 @@ protected:
 	int P_LNPSetSpeed;
 	int P_HoldTimeSet;
 	int P_HoldTimeLeft;
+	int P_StartVacuum;
+	int P_VacuumSet;
+	int P_Vacuum;
+	int P_Pressure;
 	int P_StageName;
 	int P_StageSerial;
 	int P_FirmVer;
