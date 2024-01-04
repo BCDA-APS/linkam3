@@ -56,6 +56,13 @@ linkamPortDriver::linkamPortDriver(const char *portName)
 	createParam(P_CtrlConfigString,  asynParamInt32,   &P_CtrlConfig);
 	createParam(P_CtrlStatusString,  asynParamInt32,   &P_CtrlStatus);
 	createParam(P_StageConfigString, asynParamInt32,   &P_StageConfig);
+	createParam(P_StartHumidityString,         asynParamInt32,   &P_StartHumidity);
+	createParam(P_HumiditySetString,           asynParamFloat64, &P_HumiditySet);
+	createParam(P_HumidityString,              asynParamFloat64, &P_Humidity);
+	createParam(P_HumidityTempString,          asynParamFloat64, &P_HumidityTemp);
+	createParam(P_HumiditySensorNameString,    asynParamOctet,   &P_HumiditySensorName);
+	createParam(P_HumiditySensorSerialString,  asynParamOctet,   &P_HumiditySensorSerial);
+	createParam(P_HumiditySensorHardVerString, asynParamOctet,   &P_HumiditySensorHardVer);
 }
 
 asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *value)
@@ -87,6 +94,10 @@ asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *valu
 		param1.vStageValueType = LinkamSDK::eStageValueTypeVacuum;
 	} else if (function == P_Pressure) {
 		param1.vStageValueType = LinkamSDK::eStageValueTypePressure;
+	} else if (function == P_Humidity) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeHumidity;
+	} else if (function == P_HumidityTemp) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeHumidityTemp;
 	} else if (function == P_HoldTimeLeft) {
     param1.vStageValueType = LinkamSDK::eStageValueTypeRampHoldRemaining;
 	} 
@@ -138,6 +149,12 @@ asynStatus linkamPortDriver::readOctet(asynUser *pasynUser, char *value, size_t 
 		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetControllerHardwareVersion;
 	} else if (function == P_CtrllrError) {
 		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetControllerError;
+	} else if (function == P_HumiditySensorName) {
+		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetHumidityControllerSensorName;
+	} else if (function == P_HumiditySensorSerial) {
+		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetHumidityControllerSensorSerial;
+	} else if (function == P_HumiditySensorHardVer) {
+		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetHumidityControllerSensorHardwareVersion;
 	}
 
   if(function == P_CtrllrError){
@@ -201,6 +218,8 @@ asynStatus linkamPortDriver::writeFloat64(asynUser *pasynUser, epicsFloat64 valu
         	param1.vStageValueType = LinkamSDK::eStageValueTypeRampHoldTime;
 	} else if (function == P_VacuumSet) {
         	param1.vStageValueType = LinkamSDK::eStageValueTypeVacuumSetpoint;
+	} else if (function == P_HumiditySet) {
+        	param1.vStageValueType = LinkamSDK::eStageValueTypeHumiditySetpoint;
 	}
 
 	param2.vFloat32 = value;
@@ -256,6 +275,21 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 		}
 
 		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartVacuum,
+		                     handle, &result, param1, param2);
+		
+		if (!result.vBoolean) {
+			status = asynError;
+		}
+	} else if (function == P_StartHumidity) {
+		param2.vUint64 = 0; /* unused */
+
+		if (value > 0){
+			param1.vBoolean = true;
+		} else {
+			param1.vBoolean = false;
+		}
+
+		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHumidity,
 		                     handle, &result, param1, param2);
 		
 		if (!result.vBoolean) {

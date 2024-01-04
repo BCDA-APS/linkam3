@@ -30,6 +30,13 @@
 #define P_CtrlConfigString    "LINKAM_CONFIG"
 #define P_CtrlStatusString    "LINKAM_STATUS"
 #define P_StageConfigString   "LINKAM_STAGE_CONFIG"
+#define P_StartHumidityString         "LINKAM_START_HUMIDITY"
+#define P_HumiditySetString           "LINKAM_HUMIDITY_SET"
+#define P_HumidityString              "LINKAM_HUMIDITY"
+#define P_HumidityTempString          "LINKAM_HUMIDITY_TEMP"
+#define P_HumiditySensorNameString    "LINKAM_HUMID_SENSOR_NAME"
+#define P_HumiditySensorSerialString  "LINKAM_HUMID_SENSOR_SERIAL"
+#define P_HumiditySensorHardVerString "LINKAM_HUMID_SENSOR_VERS"
 
 class linkamPortDriver : public asynPortDriver {
 public:
@@ -71,7 +78,14 @@ protected:
 	int P_StageConfig;
 	int P_Name;
 	int P_Serial;
-	#define LAST_LINKAM_COMMAND P_Serial
+	int P_StartHumidity;
+	int P_HumiditySet;
+	int P_Humidity;
+	int P_HumidityTemp;
+	int P_HumiditySensorName;
+	int P_HumiditySensorSerial;
+	int P_HumiditySensorHardVer;
+	#define LAST_LINKAM_COMMAND P_HumiditySensorHardVer
 private:
 	void rtrim(char *);
 	bool LNP_AutoMode;
