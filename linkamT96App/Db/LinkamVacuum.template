@@ -27,7 +27,7 @@ record(ai, "$(P):VACUUM")
 record(mbbo, "$(P):VACUUM:UNIT:SET")
 {
 	field(DTYP, "asynInt32")
-	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_VACUUM_UNIT_SET")
+	field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_VACUUM_UNIT_SET")
 	field(ZRST, "mBar")
 	field(ZRVL, 15)
 	field(ONST, "kPa")
