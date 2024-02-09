@@ -19,15 +19,15 @@
 # Build settings that are NOT module paths should appear in a
 # CONFIG_SITE file.
 
-TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
+#!TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
-SUPPORT=      /dls_sw/prod/R3.14.12.7/support
-WORK=         /dls_sw/work/R3.14.12.7/support
+SUPPORT=/APSshare/epics/synApps_6_2_1/support
+#!WORK=         /dls_sw/work/R3.14.12.7/support
 
-ASYN=$(SUPPORT)/asyn/4-41
+ASYN=$(SUPPORT)/asyn-R4-42
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/dls_sw/epics/R3.14.12.7/base
+EPICS_BASE=/APSshare/epics/base-7.0.4.1
 
 # Set RULES here if you want to take build rules from somewhere
 # other than EPICS_BASE:
