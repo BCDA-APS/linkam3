@@ -97,6 +97,15 @@
 #define P_VacuumUnitString    "LINKAM_VACUUM_UNIT"
 #define P_PressureString      "LINKAM_PRESSURE"
 
+// RHGen parameters
+#define P_StartHumidityString         "LINKAM_START_HUMIDITY"
+#define P_HumiditySetString           "LINKAM_HUMIDITY_SET"
+#define P_HumidityString              "LINKAM_HUMIDITY"
+#define P_HumidityTempString          "LINKAM_HUMIDITY_TEMP"
+#define P_HumiditySensorNameString    "LINKAM_HUMID_SENSOR_NAME"
+#define P_HumiditySensorSerialString  "LINKAM_HUMID_SENSOR_SERIAL"
+#define P_HumiditySensorHardVerString "LINKAM_HUMID_SENSOR_VERS"
+
 struct PositionMotorParams
 {
 	float demandPosition;
@@ -218,7 +227,16 @@ protected:
     int P_VacuumUnit;
     int P_Pressure;
 
-    #define LAST_LINKAM_COMMAND P_Pressure
+    // RHGen parameters
+    int P_StartHumidity;
+    int P_HumiditySet;
+    int P_Humidity;
+    int P_HumidityTemp;
+    int P_HumiditySensorName;
+    int P_HumiditySensorSerial;
+    int P_HumiditySensorHardVer;
+
+    #define LAST_LINKAM_COMMAND P_HumiditySensorHardVer
 
     // Connection functions
     bool initUSBConnection(unsigned int vendorID, unsigned int productID);

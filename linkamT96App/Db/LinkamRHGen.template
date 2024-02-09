@@ -1,0 +1,65 @@
+record(bo, "$(P):STARTHUM")
+{
+	field(DTYP, "asynInt32")
+	field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_START_HUMIDITY")
+	field(ZNAM, "Off")
+	field(ONAM, "On")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(ao, "$(P):HUMIDITY:SET")
+{
+	field(DTYP, "asynFloat64")
+	field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_HUMIDITY_SET")
+	field(EGU,  "%")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(ai, "$(P):HUMIDITY")
+{
+	field(SCAN, ".1 second")
+	field(DTYP, "asynFloat64")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_HUMIDITY")
+	field(EGU,  "%")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(ai, "$(P):HUMIDITY:TEMP")
+{
+	field(SCAN, ".1 second")
+	field(DTYP, "asynFloat64")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_HUMIDITY_TEMP")
+	field(EGU,  "C")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(waveform, "$(P):HUMIDITY:NAME")
+{
+	field(SCAN, "I/O Intr")
+	field(DTYP, "asynOctetRead")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_HUMID_SENSOR_NAME")
+	field(FTVL, "CHAR")
+	field(NELM, "256")
+	field(PINI, "YES")
+}
+
+record(waveform, "$(P):HUMIDITY:SERIAL")
+{
+	field(SCAN, "I/O Intr")
+	field(DTYP, "asynOctetRead")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_HUMID_SENSOR_SERIAL")
+	field(FTVL, "CHAR")
+	field(NELM, "256")
+	field(PINI, "YES")
+}
+
+record(waveform, "$(P):HUMIDITY:VERSION")
+{
+	field(SCAN, "I/O Intr")
+	field(DTYP, "asynOctetRead")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_HUMID_SENSOR_VERS")
+	field(FTVL, "CHAR")
+	field(NELM, "256")
+	field(PINI, "YES")
+	field(SDIS, "$(P):DISABLE")
+}

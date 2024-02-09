@@ -15,6 +15,7 @@ DB += Linkam_detail.template
 DB += LinkamTensileStage.template
 DB += LinkamGui.template
 DB += LinkamVacuum.template
+DB += LinkamRHGen.template
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add

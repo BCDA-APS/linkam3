@@ -16,3 +16,11 @@ pattern { P, PORT, ADDR, TIMEOUT, name }
 #!pattern { P, PORT, ADDR, TIMEOUT, name }
 #!    { "EA-LINKAM-01", "EA-LINKAM-01_AP", "0", "1", "LINKAM1" }
 #!}
+
+### Support for the RHGen (humidity stages)
+##!file $(LINKAM3)/db/LinkamRHGen.template
+##!{
+##!pattern { P, PORT, ADDR, TIMEOUT, name }
+##!    { "EA-LINKAM-01", "EA-LINKAM-01_AP", "0", "1", "LINKAM1" }
+##!}
+
