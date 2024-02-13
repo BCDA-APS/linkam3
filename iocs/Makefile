@@ -9,4 +9,8 @@ ifeq ($(EPICS_HOST_ARCH), rhel8-x86_64)
     DIRS := $(wildcard linkamIOC)
 endif
 
+ifeq ($(EPICS_HOST_ARCH), rhel8-x86_64-debug)
+    DIRS := $(wildcard linkamIOC)
+endif
+
 include $(TOP)/configure/RULES_DIRS
