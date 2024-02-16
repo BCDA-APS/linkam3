@@ -815,6 +815,8 @@ asynStatus linkamPortDriver::SetTstGotoMode(float position, float vel)
     linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_SetValue,    handle, &result, LinkamSDK::Variant(LinkamSDK::eStageValueTypeTstMotorVel),              LinkamSDK::Variant(vel),0);
     linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_SetValue,    handle, &result, LinkamSDK::Variant(LinkamSDK::eStageValueTypeTstMotorDistanceSetpoint), LinkamSDK::Variant(step),0);
     linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartMotors, handle, &result, LinkamSDK::Variant(true),axis,0);
+
+    return status;
 }
 
 //
