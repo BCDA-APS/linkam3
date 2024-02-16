@@ -413,6 +413,7 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 	int function = pasynUser->reason;
 	const char *functionName = "writeInt32";
 	asynStatus status = asynSuccess;
+	bool retval;
 
 	if (function == P_StartHeating) {
 		param2.vUint64 = 0; /* unused */
@@ -423,8 +424,12 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 			param1.vBoolean = false;
 		}
 
-		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHeating,
+		retval = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHeating,
 		                     handle, &result, param1, param2);
+		
+		asynPrint(pasynUser, ASYN_TRACE_ERROR,
+			"%s:%s: function=%d (P_Start_Heating) retval = %s; result.vBoolean = %s\n",
+			driverName, functionName, function, retval ? "true" : "false", result.vBoolean ? "true" : "false");
 		
 		if (!result.vBoolean) {
 			status = asynError;
