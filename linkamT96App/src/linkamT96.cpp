@@ -232,19 +232,26 @@ void linkamPortDriver::pollerThread()
         setDoubleParam(P_Temp, value);
     }
     
-    /*
     // Get the heater power
-    fval = GetValue(u32Heater1PowerR);
-    setDoubleParam(heaterPowerInValue_, fval);
+    status = getStageValue(LinkamSDK::eStageValueTypeHeater1Power, &value);
+    if (status == asynSuccess)
+    {
+        setDoubleParam(P_Power, value);
+    }
     
     // Get the LN pump speed
-    fval = GetValue(u32Heater1LnpSpeedR);
-    setDoubleParam(lnpSpeedInValue_, fval);
+    status = getStageValue(LinkamSDK::eStageValueTypeHeater1LNPSpeed, &value);
+    if (status == asynSuccess)
+    {
+        setDoubleParam(P_LNPSpeed, value);
+    }
     
     // Get the pressure
-    fval = GetValue(u32VacuumR);
-    setDoubleParam(pressureInValue_, fval);
-    */
+    status = getStageValue(LinkamSDK::eStageValueTypePressure, &value);
+    if (status == asynSuccess)
+    {
+        setDoubleParam(P_Pressure, value);
+    }
     
     callParamCallbacks();
     
