@@ -1,6 +1,8 @@
 #include "asynPortDriver.h"
 #include <epicsEvent.h>
 
+#define DEFAULT_POLL_PERIOD_MS 100
+
 #define P_TempString          "LINKAM_TEMP"
 #define P_RampRateSetString   "LINKAM_RAMPRATE_SET"
 #define P_RampRateString      "LINKAM_RAMPRATE"
@@ -106,6 +108,11 @@
 #define P_HumiditySensorSerialString  "LINKAM_HUMID_SENSOR_SERIAL"
 #define P_HumiditySensorHardVerString "LINKAM_HUMID_SENSOR_VERS"
 
+// Controller status bit parameters
+#define P_StatHtr1HeatingString       "LINKAM_STAT_HTR1_HEATING"
+#define P_StatHtr1AtSetPtString       "LINKAM_STAT_HTR1_ATSETPT"
+
+
 struct PositionMotorParams
 {
 	float demandPosition;
@@ -130,6 +137,9 @@ public:
 	virtual asynStatus writeFloat64(asynUser *, epicsFloat64);
 	virtual asynStatus writeInt32(asynUser *, epicsInt32);
 	virtual asynStatus readInt32(asynUser *, epicsInt32 *);
+	// These should be private but are called from C
+	virtual void pollerThread(void);
+
 protected:
 	//epicsEventId eventId_;
 	int P_Temp;
@@ -236,7 +246,11 @@ protected:
     int P_HumiditySensorSerial;
     int P_HumiditySensorHardVer;
 
-    #define LAST_LINKAM_COMMAND P_HumiditySensorHardVer
+    // Controller status bit parameters
+    int P_StatHtr1Heating;
+    int P_StatHtr1AtSetPt;
+
+    #define LAST_LINKAM_COMMAND P_StatHtr1AtSetPt
 
     // Connection functions
     bool initUSBConnection(unsigned int vendorID, unsigned int productID);
@@ -256,6 +270,8 @@ private:
 	void rtrim(char *);
 	bool LNP_AutoMode;
 	int LNP_ManualSpeed;
+	LinkamSDK::Variant controllerStatus_;
+	int pollPeriod_;
     PositionMotorParams pMotorParams;
     ForceMotorParams fMotorParams;
 };

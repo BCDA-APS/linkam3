@@ -187,6 +187,28 @@ record(bo, "$(P):STARTHEAT")
 	field(SDIS, "$(P):DISABLE")
 }
 
+record(bi, "$(P):STAT:HTR1:HEATING")
+{
+	field(DESC, "Furnace on/off")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_HTR1_HEATING")
+	field(ZNAM, "Off")
+	field(ONAM, "On")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(bi, "$(P):STAT:HTR1:AT_SETPT")
+{
+	field(DESC, "At ramp set point")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_HTR1_ATSETPT")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
 record(ao, "$(P):RAMPRATE:SET")
 {
 	field(DTYP, "asynFloat64")

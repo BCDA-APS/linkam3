@@ -288,7 +288,7 @@ menu {
 		height=25
 	}
 	monitor {
-		chan="$(P):heating_RBV"
+		chan="$(P):STAT:HTR1:HEATING"
 		clr=14
 		bclr=4
 	}
@@ -449,7 +449,7 @@ rectangle {
 	"dynamic attribute" {
 		vis="if not zero"
 		calc="A"
-		chan="$(P):rampAtLimit_RBV"
+		chan="$(P):STAT:HTR1:AT_SETPT"
 	}
 }
 "text update" {

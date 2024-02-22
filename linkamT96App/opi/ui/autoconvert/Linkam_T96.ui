@@ -724,7 +724,7 @@ border-radius: 2px;
                 <enum>caLineEdit::WidthAndHeight</enum>
             </property>
             <property name="channel">
-                <string>$(P):heating_RBV</string>
+                <string>$(P):STAT:HTR1:HEATING</string>
             </property>
             <property name="foreground">
                 <color alpha="255">
@@ -1183,7 +1183,7 @@ border-radius: 2px;
                 <string>A</string>
             </property>
             <property name="channel">
-                <string>$(P):rampAtLimit_RBV</string>
+                <string>$(P):STAT:HTR1:AT_SETPT</string>
             </property>
         </widget>
         <widget class="caLineEdit" name="caLineEdit_7">

@@ -6,12 +6,20 @@
 #include <string.h>
 #include "include/LinkamSDK.h"
 #include "include/CommsAPI.h"
+#include "include/Message.h"
 #include "linkamT96.h"
 #include "epicsThread.h"
 
 CommsHandle handle = 0;
 
 static const char *driverName = "linkamT96Driver";
+
+// This needs to come before the constructor to avoid compiler errors
+static void pollerThreadC(void * pPvt)
+{
+  linkamPortDriver *plinkamPortDriver = (linkamPortDriver *)pPvt;
+  plinkamPortDriver->pollerThread();
+}
 
 /*
  *
@@ -24,9 +32,9 @@ linkamPortDriver::linkamPortDriver(const char *portName)
 			 0, /* asynFlags */
 			 1, /* Autoconnect */
 			 0, /* Default priority */
-			 0) /* Default stack size */
+			 0), /* Default stack size */
+	pollPeriod_(DEFAULT_POLL_PERIOD_MS)
 {
-
 	// Sensible default move parameters
 	pMotorParams.demandPosition = 4000.0;
 	pMotorParams.demandVelocity = 500.0;
@@ -139,7 +147,96 @@ linkamPortDriver::linkamPortDriver(const char *portName)
     createParam(P_HumiditySensorNameString,    asynParamOctet,   &P_HumiditySensorName);
     createParam(P_HumiditySensorSerialString,  asynParamOctet,   &P_HumiditySensorSerial);
     createParam(P_HumiditySensorHardVerString, asynParamOctet,   &P_HumiditySensorHardVer);
+    
+    createParam(P_StatHtr1HeatingString,         asynParamInt32,   &P_StatHtr1Heating);
+    createParam(P_StatHtr1AtSetPtString,         asynParamInt32,   &P_StatHtr1AtSetPt);
 
+    // Start the poller
+    epicsThreadCreate("linkamPortDriverPoller",
+        epicsThreadPriorityLow,
+         epicsThreadGetStackSize(epicsThreadStackMedium),
+         (EPICSTHREADFUNC)pollerThreadC,
+         this);
+}
+
+/*
+ * poller
+ */
+void linkamPortDriver::pollerThread()
+{
+  /* This function runs in a separate thread.  It waits for the poll time. */
+  static const char *functionName = "pollerThread";
+  // Other variable declarations
+  LinkamSDK::Variant result;
+  bool retval;
+  int errorcode;
+
+  // IAMHERE
+  
+  while (1)
+  {
+    lock();
+    
+    // Get the controller status
+    retval = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStatus, handle, &result);
+    if (result.vControllerStatus.flags.controllerError) {
+        errorcode = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetControllerError, handle, &result);
+
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+            "%s:%s: Controller Error %i: %s\n",
+            driverName, functionName, errorcode, LinkamSDK::ControllerErrorStrings[errorcode]);
+    } else {
+        // Save the controller status as a field of the class, rather than an 
+        // asyn parameter, since channel access doesn't support 64-bit integers.
+        // Also, is it convenient to store the value in a LinkamSDK::Variant.
+        controllerStatus_ = result;
+    }
+    
+    /* 
+     * Setthe controller status parameters
+     */
+    setIntegerParam(P_StatHtr1AtSetPt, controllerStatus_.vControllerStatus.flags.heater1RampSetPoint);
+    setIntegerParam(P_StatHtr1Heating, controllerStatus_.vControllerStatus.flags.heater1Started);
+    
+    /*
+    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64ControllerError) ) ? 1 : 0;
+    setIntegerParam(statusControllerError_, ival);
+    
+    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64VacuumSetPoint) ) ? 1 : 0;
+    setIntegerParam(statusVacuumSetpoint_, ival);
+
+    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64VacuumControlStarted) ) ? 1 : 0;
+    setIntegerParam(statusVacuumStarted_, ival);
+
+    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64LnpCoolingStarted) ) ? 1 : 0;
+    setIntegerParam(statusLnpCoolingStarted_, ival);
+
+    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64LnpCoolingAuto) ) ? 1 : 0;
+    setIntegerParam(statusLnpCoolingAuto_, ival);
+    
+    // Get the temperature
+    fval = GetValue(u32Heater1TempR);
+    setDoubleParam(temperatureInValue_, fval);
+    
+    // Get the heater power
+    fval = GetValue(u32Heater1PowerR);
+    setDoubleParam(heaterPowerInValue_, fval);
+    
+    // Get the LN pump speed
+    fval = GetValue(u32Heater1LnpSpeedR);
+    setDoubleParam(lnpSpeedInValue_, fval);
+    
+    // Get the pressure
+    fval = GetValue(u32VacuumR);
+    setDoubleParam(pressureInValue_, fval);
+    */
+    
+    callParamCallbacks();
+    
+    unlock();
+    // pollPeriod_ is in ms, but epicsTheadSleep needs s
+    epicsThreadSleep(pollPeriod_ / 1000.0);
+  }
 }
 
 asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *value)
@@ -428,8 +525,8 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 		                     handle, &result, param1, param2);
 		
 		asynPrint(pasynUser, ASYN_TRACE_ERROR,
-			"%s:%s: function=%d (P_Start_Heating) retval = %s; result.vBoolean = %s\n",
-			driverName, functionName, function, retval ? "true" : "false", result.vBoolean ? "true" : "false");
+			"%s:%s: function=%d (P_Start_Heating) value = %i; retval = %s; result.vBoolean = %s\n",
+			driverName, functionName, function, value, retval ? "true" : "false", result.vBoolean ? "true" : "false");
 		
 		if (!result.vBoolean) {
 			status = asynError;
