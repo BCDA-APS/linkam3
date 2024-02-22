@@ -179,9 +179,9 @@ void linkamPortDriver::pollerThread()
   LinkamSDK::Variant result;
   bool retval;
   int errorcode;
+  epicsFloat64 value;
+  asynStatus status = asynSuccess;
 
-  // IAMHERE
-  
   while (1)
   {
     lock();
@@ -222,10 +222,17 @@ void linkamPortDriver::pollerThread()
     setIntegerParam(P_StatHumDesCond,  controllerStatus_.vControllerStatus.flags.HumidityDesiccantConditioning);
     
     /*
-    // Get the temperature
-    fval = GetValue(u32Heater1TempR);
-    setDoubleParam(temperatureInValue_, fval);
+     * Query important values and publish the changes so that records can use SCAN = "I/O Intr"
+     */
     
+    // Get the temperature
+    status = getStageValue(LinkamSDK::eStageValueTypeHeater1Temp, &value);
+    if (status == asynSuccess)
+    {
+        setDoubleParam(P_Temp, value);
+    }
+    
+    /*
     // Get the heater power
     fval = GetValue(u32Heater1PowerR);
     setDoubleParam(heaterPowerInValue_, fval);
@@ -245,6 +252,35 @@ void linkamPortDriver::pollerThread()
     // pollPeriod_ is in ms, but epicsTheadSleep needs s
     epicsThreadSleep(pollPeriod_ / 1000.0);
   }
+}
+
+asynStatus linkamPortDriver::getStageValue(LinkamSDK::StageValueType stageValueType, epicsFloat64 *value)
+{
+	LinkamSDK::Variant param1;
+	LinkamSDK::Variant param2;
+	LinkamSDK::Variant result;
+	const char *functionName = "getStageValue";
+	asynStatus status = asynSuccess;
+	
+	param1.vStageValueType = stageValueType;
+	
+	if (linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetValue, handle, &result, param1, param2)){
+		*value = result.vFloat32;
+	}else{
+		status = asynError;
+	}
+	
+	if (status)
+		epicsSnprintf(this->pasynUserSelf->errorMessage, this->pasynUserSelf->errorMessageSize,
+			"%s:%s: status=%d, stageValueType=%d",
+			driverName, functionName, status, stageValueType);
+	else
+		asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER,
+			"%s:%s: stageValueType=%d, value=%lf\n",
+			driverName, functionName, stageValueType, *value);
+	
+	return status;
+
 }
 
 asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *value)

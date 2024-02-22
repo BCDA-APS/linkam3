@@ -146,6 +146,7 @@ public:
 	virtual asynStatus writeFloat64(asynUser *, epicsFloat64);
 	virtual asynStatus writeInt32(asynUser *, epicsInt32);
 	virtual asynStatus readInt32(asynUser *, epicsInt32 *);
+	asynStatus getStageValue(LinkamSDK::StageValueType stageValueType, epicsFloat64 *value);
 	// These should be private but are called from C
 	virtual void pollerThread(void);
 
