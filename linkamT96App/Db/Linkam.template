@@ -303,6 +303,29 @@ record(bo, "$(P):LNP_MODE:SET") {
 	field(SDIS, "$(P):DISABLE")
 }
 
+record(bi, "$(P):LNP_MODE")
+{
+	field(DESC, "Pump control")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_LNP_PUMP_AUTO")
+	field(ZNAM, "Manual")
+	field(ONAM, "Auto")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(bi, "$(P):STAT:LNP:PUMPING")
+{
+	field(DESC, "LNP pumping")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_LNP_PUMP_ON")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
+
 record(ao, "$(P):LNP_SPEED:SET")
 {
 	field(DTYP, "asynInt32")

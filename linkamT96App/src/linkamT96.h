@@ -111,6 +111,15 @@
 // Controller status bit parameters
 #define P_StatHtr1HeatingString       "LINKAM_STAT_HTR1_HEATING"
 #define P_StatHtr1AtSetPtString       "LINKAM_STAT_HTR1_ATSETPT"
+#define P_StatHtr2HeatingString       "LINKAM_STAT_HTR2_HEATING"
+#define P_StatHtr2AtSetPtString       "LINKAM_STAT_HTR2_ATSETPT"
+#define P_StatVacAtSetPtString       "LINKAM_STAT_VAC_ATSETPT"
+#define P_StatVacControlString       "LINKAM_STAT_VAC_CONTROL"
+#define P_StatHumAtSetPtString       "LINKAM_STAT_HUM_ATSETPT"
+#define P_StatHumControlString       "LINKAM_STAT_HUM_CONTROL"
+#define P_StatLnpPumpOnString        "LINKAM_STAT_LNP_PUMP_ON"
+#define P_StatLnpPumpAutoString      "LINKAM_STAT_LNP_PUMP_AUTO"
+#define P_StatHumDesCondString       "LINKAM_STAT_HUM_DES_COND"
 
 
 struct PositionMotorParams
@@ -249,8 +258,17 @@ protected:
     // Controller status bit parameters
     int P_StatHtr1Heating;
     int P_StatHtr1AtSetPt;
+    int P_StatHtr2Heating;
+    int P_StatHtr2AtSetPt;
+    int P_StatVacAtSetPt;
+    int P_StatVacControl;
+    int P_StatHumAtSetPt;
+    int P_StatHumControl;
+    int P_StatLnpPumpOn;
+    int P_StatLnpPumpAuto;
+    int P_StatHumDesCond;
 
-    #define LAST_LINKAM_COMMAND P_StatHtr1AtSetPt
+    #define LAST_LINKAM_COMMAND P_StatHumDesCond
 
     // Connection functions
     bool initUSBConnection(unsigned int vendorID, unsigned int productID);

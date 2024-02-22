@@ -150,8 +150,17 @@ linkamPortDriver::linkamPortDriver(const char *portName)
     
     createParam(P_StatHtr1HeatingString,         asynParamInt32,   &P_StatHtr1Heating);
     createParam(P_StatHtr1AtSetPtString,         asynParamInt32,   &P_StatHtr1AtSetPt);
+    createParam(P_StatHtr2HeatingString,         asynParamInt32,   &P_StatHtr2Heating);
+    createParam(P_StatHtr2AtSetPtString,         asynParamInt32,   &P_StatHtr2AtSetPt);
+    createParam(P_StatVacAtSetPtString,          asynParamInt32,   &P_StatVacAtSetPt);
+    createParam(P_StatVacControlString,          asynParamInt32,   &P_StatVacControl);
+    createParam(P_StatHumAtSetPtString,          asynParamInt32,   &P_StatHumAtSetPt);
+    createParam(P_StatHumControlString,          asynParamInt32,   &P_StatHumControl);
+    createParam(P_StatLnpPumpOnString,           asynParamInt32,   &P_StatLnpPumpOn);
+    createParam(P_StatLnpPumpAutoString,         asynParamInt32,   &P_StatLnpPumpAuto);
+    createParam(P_StatHumDesCondString,          asynParamInt32,   &P_StatHumDesCond);
 
-    // Start the poller
+    // Start the poller - this could be called explicitly from the iocsh if it should be optional
     epicsThreadCreate("linkamPortDriverPoller",
         epicsThreadPriorityLow,
          epicsThreadGetStackSize(epicsThreadStackMedium),
@@ -185,35 +194,34 @@ void linkamPortDriver::pollerThread()
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
             "%s:%s: Controller Error %i: %s\n",
             driverName, functionName, errorcode, LinkamSDK::ControllerErrorStrings[errorcode]);
+        
+        setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[errorcode]);
     } else {
         // Save the controller status as a field of the class, rather than an 
         // asyn parameter, since channel access doesn't support 64-bit integers.
         // Also, is it convenient to store the value in a LinkamSDK::Variant.
         controllerStatus_ = result;
+        
+        // When there isn't a controller error, vControllerStatus.flags.controllerError should be zero, which is also eControllerErrorNone
+        setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[controllerStatus_.vControllerStatus.flags.controllerError]);
     }
     
     /* 
-     * Setthe controller status parameters
+     * Set the controller status parameters using the last good result
      */
     setIntegerParam(P_StatHtr1AtSetPt, controllerStatus_.vControllerStatus.flags.heater1RampSetPoint);
     setIntegerParam(P_StatHtr1Heating, controllerStatus_.vControllerStatus.flags.heater1Started);
+    setIntegerParam(P_StatHtr2AtSetPt, controllerStatus_.vControllerStatus.flags.heater2RampSetPoint);
+    setIntegerParam(P_StatHtr2Heating, controllerStatus_.vControllerStatus.flags.heater2Started);
+    setIntegerParam(P_StatVacAtSetPt,  controllerStatus_.vControllerStatus.flags.vacuumRampSetPoint);
+    setIntegerParam(P_StatVacControl,  controllerStatus_.vControllerStatus.flags.vacuumCtrlStarted);
+    setIntegerParam(P_StatHumAtSetPt,  controllerStatus_.vControllerStatus.flags.humidityRampSetPoint);
+    setIntegerParam(P_StatHumControl,  controllerStatus_.vControllerStatus.flags.humidityCtrlStarted);
+    setIntegerParam(P_StatLnpPumpOn,   controllerStatus_.vControllerStatus.flags.lnpCoolingPumpOn);
+    setIntegerParam(P_StatLnpPumpAuto, controllerStatus_.vControllerStatus.flags.lnpCoolingPumpAuto);
+    setIntegerParam(P_StatHumDesCond,  controllerStatus_.vControllerStatus.flags.HumidityDesiccantConditioning);
     
     /*
-    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64ControllerError) ) ? 1 : 0;
-    setIntegerParam(statusControllerError_, ival);
-    
-    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64VacuumSetPoint) ) ? 1 : 0;
-    setIntegerParam(statusVacuumSetpoint_, ival);
-
-    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64VacuumControlStarted) ) ? 1 : 0;
-    setIntegerParam(statusVacuumStarted_, ival);
-
-    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64LnpCoolingStarted) ) ? 1 : 0;
-    setIntegerParam(statusLnpCoolingStarted_, ival);
-
-    ival = ( controllerStatus_ & ((epicsUInt64)1 << (int)u64LnpCoolingAuto) ) ? 1 : 0;
-    setIntegerParam(statusLnpCoolingAuto_, ival);
-    
     // Get the temperature
     fval = GetValue(u32Heater1TempR);
     setDoubleParam(temperatureInValue_, fval);

@@ -7,6 +7,28 @@ record(bo, "$(P):STARTVAC")
 	field(SDIS, "$(P):DISABLE")
 }
 
+record(bi, "$(P):STAT:VAC:CNTRL")
+{
+	field(DESC, "Humiity control on/off")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_VAC_CONTROL")
+	field(ZNAM, "Off")
+	field(ONAM, "On")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(bi, "$(P):STAT:VAC:AT_SETPT")
+{
+	field(DESC, "At humidity set point")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_VAC_ATSETPT")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
 record(ao, "$(P):VACUUM:SET")
 {
 	field(DTYP, "asynFloat64")

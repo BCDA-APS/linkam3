@@ -7,6 +7,28 @@ record(bo, "$(P):STARTHUM")
 	field(SDIS, "$(P):DISABLE")
 }
 
+record(bi, "$(P):STAT:HUM:CNTRL")
+{
+	field(DESC, "Humidity control on/off")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_HUM_CONTROL")
+	field(ZNAM, "Off")
+	field(ONAM, "On")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
+record(bi, "$(P):STAT:HUM:AT_SETPT")
+{
+	field(DESC, "At humidity set point")
+	field(DTYP, "asynInt32")
+	field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))LINKAM_STAT_HUM_ATSETPT")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+	field(SDIS, "$(P):DISABLE")
+}
+
 record(ao, "$(P):HUMIDITY:SET")
 {
 	field(DTYP, "asynFloat64")

@@ -427,7 +427,7 @@ composite {
 		height=25
 	}
 	monitor {
-		chan="$(P):lnpMode_RBV"
+		chan="$(P):LNP_MODE"
 		clr=14
 		bclr=4
 	}
@@ -460,7 +460,7 @@ rectangle {
 		height=25
 	}
 	monitor {
-		chan="$(P):lnpStatus_RBV"
+		chan="$(P):STAT:LNP:PUMPING"
 		clr=14
 		bclr=4
 	}
@@ -595,7 +595,7 @@ composite {
 				height=25
 			}
 			monitor {
-				chan="$(P):vacuumStatus_RBV"
+				chan="$(P):STAT:VAC:CNTRL"
 				clr=14
 				bclr=4
 			}
@@ -617,7 +617,7 @@ composite {
 			"dynamic attribute" {
 				vis="if not zero"
 				calc="A"
-				chan="$(P):vacuumAtLimit_RBV"
+				chan="$(P):STAT:VAC:AT_SETPT"
 			}
 		}
 	}
@@ -676,7 +676,7 @@ rectangle {
 	"dynamic attribute" {
 		vis="if not zero"
 		calc="0"
-		chan="$(P):vacuumAtLimit_RBV"
+		chan="$(P):STAT:HUM:AT_SETPT"
 	}
 }
 composite {
@@ -708,7 +708,7 @@ composite {
 				height=25
 			}
 			monitor {
-				chan="$(P):statusError_RBV"
+				chan="$(P):CTRLLR:ERR"
 				clr=14
 				bclr=4
 			}
@@ -789,7 +789,7 @@ composite {
 				height=25
 			}
 			monitor {
-				chan="$(P):humidityStatus_RBV"
+				chan="$(P):STAT:HUM:CNTRL"
 				clr=14
 				bclr=4
 			}
