@@ -186,78 +186,88 @@ void linkamPortDriver::pollerThread()
   {
     lock();
     
-    // Get the controller status
-    retval = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStatus, handle, &result);
-    if (result.vControllerStatus.flags.controllerError) {
-        errorcode = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetControllerError, handle, &result);
-
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-            "%s:%s: Controller Error %i: %s\n",
-            driverName, functionName, errorcode, LinkamSDK::ControllerErrorStrings[errorcode]);
+    if (pollPeriod_ > 0)
+    {
+        // Get the controller status
+        retval = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStatus, handle, &result);
+        if (result.vControllerStatus.flags.controllerError) {
+            errorcode = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetControllerError, handle, &result);
         
-        setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[errorcode]);
-    } else {
-        // Save the controller status as a field of the class, rather than an 
-        // asyn parameter, since channel access doesn't support 64-bit integers.
-        // Also, is it convenient to store the value in a LinkamSDK::Variant.
-        controllerStatus_ = result;
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+                "%s:%s: Controller Error %i: %s\n",
+                driverName, functionName, errorcode, LinkamSDK::ControllerErrorStrings[errorcode]);
+            
+            setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[errorcode]);
+        } else {
+            // Save the controller status as a field of the class, rather than an 
+            // asyn parameter, since channel access doesn't support 64-bit integers.
+            // Also, is it convenient to store the value in a LinkamSDK::Variant.
+            controllerStatus_ = result;
+            
+            // When there isn't a controller error, vControllerStatus.flags.controllerError should be zero, which is also eControllerErrorNone
+            setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[controllerStatus_.vControllerStatus.flags.controllerError]);
+        }
         
-        // When there isn't a controller error, vControllerStatus.flags.controllerError should be zero, which is also eControllerErrorNone
-        setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[controllerStatus_.vControllerStatus.flags.controllerError]);
+        /* 
+         * Set the controller status parameters using the last good result
+         */
+        setIntegerParam(P_StatHtr1AtSetPt, controllerStatus_.vControllerStatus.flags.heater1RampSetPoint);
+        setIntegerParam(P_StatHtr1Heating, controllerStatus_.vControllerStatus.flags.heater1Started);
+        setIntegerParam(P_StatHtr2AtSetPt, controllerStatus_.vControllerStatus.flags.heater2RampSetPoint);
+        setIntegerParam(P_StatHtr2Heating, controllerStatus_.vControllerStatus.flags.heater2Started);
+        setIntegerParam(P_StatVacAtSetPt,  controllerStatus_.vControllerStatus.flags.vacuumRampSetPoint);
+        setIntegerParam(P_StatVacControl,  controllerStatus_.vControllerStatus.flags.vacuumCtrlStarted);
+        setIntegerParam(P_StatHumAtSetPt,  controllerStatus_.vControllerStatus.flags.humidityRampSetPoint);
+        setIntegerParam(P_StatHumControl,  controllerStatus_.vControllerStatus.flags.humidityCtrlStarted);
+        setIntegerParam(P_StatLnpPumpOn,   controllerStatus_.vControllerStatus.flags.lnpCoolingPumpOn);
+        setIntegerParam(P_StatLnpPumpAuto, controllerStatus_.vControllerStatus.flags.lnpCoolingPumpAuto);
+        setIntegerParam(P_StatHumDesCond,  controllerStatus_.vControllerStatus.flags.HumidityDesiccantConditioning);
+        
+        /*
+         * Query important values and publish the changes so that records can use SCAN = "I/O Intr"
+         */
+        
+        // Get the temperature
+        status = getStageValue(LinkamSDK::eStageValueTypeHeater1Temp, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_Temp, value);
+        }
+        
+        // Get the heater power
+        status = getStageValue(LinkamSDK::eStageValueTypeHeater1Power, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_Power, value);
+        }
+        
+        // Get the LN pump speed
+        status = getStageValue(LinkamSDK::eStageValueTypeHeater1LNPSpeed, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_LNPSpeed, value);
+        }
+        
+        // Get the pressure
+        status = getStageValue(LinkamSDK::eStageValueTypePressure, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_Pressure, value);
+        }
+        
+        callParamCallbacks();
     }
-    
-    /* 
-     * Set the controller status parameters using the last good result
-     */
-    setIntegerParam(P_StatHtr1AtSetPt, controllerStatus_.vControllerStatus.flags.heater1RampSetPoint);
-    setIntegerParam(P_StatHtr1Heating, controllerStatus_.vControllerStatus.flags.heater1Started);
-    setIntegerParam(P_StatHtr2AtSetPt, controllerStatus_.vControllerStatus.flags.heater2RampSetPoint);
-    setIntegerParam(P_StatHtr2Heating, controllerStatus_.vControllerStatus.flags.heater2Started);
-    setIntegerParam(P_StatVacAtSetPt,  controllerStatus_.vControllerStatus.flags.vacuumRampSetPoint);
-    setIntegerParam(P_StatVacControl,  controllerStatus_.vControllerStatus.flags.vacuumCtrlStarted);
-    setIntegerParam(P_StatHumAtSetPt,  controllerStatus_.vControllerStatus.flags.humidityRampSetPoint);
-    setIntegerParam(P_StatHumControl,  controllerStatus_.vControllerStatus.flags.humidityCtrlStarted);
-    setIntegerParam(P_StatLnpPumpOn,   controllerStatus_.vControllerStatus.flags.lnpCoolingPumpOn);
-    setIntegerParam(P_StatLnpPumpAuto, controllerStatus_.vControllerStatus.flags.lnpCoolingPumpAuto);
-    setIntegerParam(P_StatHumDesCond,  controllerStatus_.vControllerStatus.flags.HumidityDesiccantConditioning);
-    
-    /*
-     * Query important values and publish the changes so that records can use SCAN = "I/O Intr"
-     */
-    
-    // Get the temperature
-    status = getStageValue(LinkamSDK::eStageValueTypeHeater1Temp, &value);
-    if (status == asynSuccess)
-    {
-        setDoubleParam(P_Temp, value);
-    }
-    
-    // Get the heater power
-    status = getStageValue(LinkamSDK::eStageValueTypeHeater1Power, &value);
-    if (status == asynSuccess)
-    {
-        setDoubleParam(P_Power, value);
-    }
-    
-    // Get the LN pump speed
-    status = getStageValue(LinkamSDK::eStageValueTypeHeater1LNPSpeed, &value);
-    if (status == asynSuccess)
-    {
-        setDoubleParam(P_LNPSpeed, value);
-    }
-    
-    // Get the pressure
-    status = getStageValue(LinkamSDK::eStageValueTypePressure, &value);
-    if (status == asynSuccess)
-    {
-        setDoubleParam(P_Pressure, value);
-    }
-    
-    callParamCallbacks();
     
     unlock();
-    // pollPeriod_ is in ms, but epicsTheadSleep needs s
-    epicsThreadSleep(pollPeriod_ / 1000.0);
+    
+    if (pollPeriod_ > 0)
+    {
+        // pollPeriod_ is in ms, but epicsTheadSleep needs s
+        epicsThreadSleep(pollPeriod_ / 1000.0);
+    } else {
+        // polling is disabled - wait until the poll period is changed (not yet implemented)
+        epicsThreadSleep(10.0);
+    }
   }
 }
 
