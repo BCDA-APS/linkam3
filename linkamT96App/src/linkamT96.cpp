@@ -1001,6 +1001,7 @@ static void linkamStatus_CallFunc(const iocshArgBuf *args)
 	LinkamSDK::Variant result;
 	linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStatus, handle, &result);
 
+	printf("### Linkam Controller Status ###\n");
 	printf("controllerError               = %d\n", result.vControllerStatus.flags.controllerError);
 	printf("heater1RampSetPoint           = %d\n", result.vControllerStatus.flags.heater1RampSetPoint);
 	printf("heater1Started                = %d\n", result.vControllerStatus.flags.heater1Started);
@@ -1033,6 +1034,79 @@ static void linkamStatus_CallFunc(const iocshArgBuf *args)
 	printf("cssZeroLimit                  = %d\n", result.vControllerStatus.flags.cssZeroLimit);
 }
 
+/*
+ * linkamConfig
+ */
+static const iocshArg * const linkamConfig_Args[0] = {};
+static const iocshFuncDef linkamConfig_FuncDef = { "linkamConfig", 0, linkamConfig_Args };
+
+static void linkamConfig_CallFunc(const iocshArgBuf *args)
+{
+	(void)args;
+	LinkamSDK::Variant result;
+	linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetControllerConfig, handle, &result);
+
+	printf("### Linkam Controller Config ###\n");
+	printf("supportsHeater                       = %d\n", result.vControllerConfig.flags.supportsHeater);
+	printf("supportsDualHeater                   = %d\n", result.vControllerConfig.flags.supportsDualHeater);
+	printf("supportsDualHeaterIndependentLimits  = %d\n", result.vControllerConfig.flags.supportsDualHeaterIndependentLimits);
+	printf("supportsDualHeaterIndependentRates   = %d\n", result.vControllerConfig.flags.supportsDualHeaterIndependentRates);
+	printf("vacuumOption                         = %d\n", result.vControllerConfig.flags.vacuumOption);
+	printf("tensileForceCardReady                = %d\n", result.vControllerConfig.flags.tensileForceCardReady);
+	printf("dscCardReady                         = %d\n", result.vControllerConfig.flags.dscCardReady);
+	printf("xMotorCardReady                      = %d\n", result.vControllerConfig.flags.xMotorCardReady);
+	printf("yMotorCardReady                      = %d\n", result.vControllerConfig.flags.yMotorCardReady);
+	printf("zMotorCardReady                      = %d\n", result.vControllerConfig.flags.zMotorCardReady);
+	printf("motorValveCardReady                  = %d\n", result.vControllerConfig.flags.motorValveCardReady);
+	printf("tensileMotorCardReady                = %d\n", result.vControllerConfig.flags.tensileMotorCardReady);
+	printf("gradedMotorCardReady                 = %d\n", result.vControllerConfig.flags.gradedMotorCardReady);
+	printf("dtcCardReady                         = %d\n", result.vControllerConfig.flags.dtcCardReady);
+	printf("cssMotorCardReady                    = %d\n", result.vControllerConfig.flags.cssMotorCardReady);
+	printf("lnpReady                             = %d\n", result.vControllerConfig.flags.lnpReady);
+	printf("lnpDualReady                         = %d\n", result.vControllerConfig.flags.lnpDualReady);
+	printf("humidityReady                        = %d\n", result.vControllerConfig.flags.humidityReady);
+}
+
+/*
+ * linkamStageConfig
+ */
+static const iocshArg * const linkamStageConfig_Args[0] = {};
+static const iocshFuncDef linkamStageConfig_FuncDef = { "linkamStageConfig", 0, linkamStageConfig_Args };
+
+static void linkamStageConfig_CallFunc(const iocshArgBuf *args)
+{
+	(void)args;
+	LinkamSDK::Variant result;
+	linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStageConfig, handle, &result);
+
+	printf("### Linkam Stage Config ###\n");
+	printf("standardStage              = %d\n", result.vStageConfig.flags.standardStage);
+	printf("highTempStage              = %d\n", result.vStageConfig.flags.highTempStage);
+	printf("peltierStage               = %d\n", result.vStageConfig.flags.peltierStage);
+	printf("gradedStage                = %d\n", result.vStageConfig.flags.gradedStage);
+	printf("tensileStage               = %d\n", result.vStageConfig.flags.tensileStage);
+	printf("dscStage                   = %d\n", result.vStageConfig.flags.dscStage);
+	printf("warmStage                  = %d\n", result.vStageConfig.flags.warmStage);
+	printf("itoStage                   = %d\n", result.vStageConfig.flags.itoStage);
+	printf("css450Stage                = %d\n", result.vStageConfig.flags.css450Stage);
+	printf("correlativeStage           = %d\n", result.vStageConfig.flags.correlativeStage);
+	printf("coolingManual              = %d\n", result.vStageConfig.flags.coolingManual);
+	printf("coolingAutomatic           = %d\n", result.vStageConfig.flags.coolingAutomatic);
+	printf("coolingDual                = %d\n", result.vStageConfig.flags.coolingDual);
+	printf("coolingDualSpeedIndependent= %d\n", result.vStageConfig.flags.coolingDualSpeedIndependent);
+	printf("heater1                    = %d\n", result.vStageConfig.flags.heater1);
+	printf("heater1TempCtrl            = %d\n", result.vStageConfig.flags.heater1TempCtrl);
+	printf("heater1TempCtrlProbe       = %d\n", result.vStageConfig.flags.heater1TempCtrlProbe);
+	printf("heater2                    = %d\n", result.vStageConfig.flags.heater2);
+	printf("heater12IndependentLimits  = %d\n", result.vStageConfig.flags.heater12IndependentLimits);
+	printf("waterCoolingSensorFitted   = %d\n", result.vStageConfig.flags.waterCoolingSensorFitted);
+	printf("home                       = %d\n", result.vStageConfig.flags.home);
+	printf("supportsVacuum             = %d\n", result.vStageConfig.flags.supportsVacuum);
+	printf("motorX                     = %d\n", result.vStageConfig.flags.motorX);
+	printf("motorY                     = %d\n", result.vStageConfig.flags.motorY);
+	printf("motorZ                     = %d\n", result.vStageConfig.flags.motorZ);
+	printf("supportsHumidity           = %d\n", result.vStageConfig.flags.supportsHumidity);
+}
 
 /*
  * linkamConnect
@@ -1111,6 +1185,8 @@ static void linkamConnect_CallFunc(const iocshArgBuf *args)
 void linkamRegistrar(void)
 {
 	iocshRegister(&linkamStatus_FuncDef, linkamStatus_CallFunc);
+	iocshRegister(&linkamConfig_FuncDef, linkamConfig_CallFunc);
+	iocshRegister(&linkamStageConfig_FuncDef, linkamStageConfig_CallFunc);
 	iocshRegister(&linkamConnect_FuncDef, linkamConnect_CallFunc);
 }
 
