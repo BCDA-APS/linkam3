@@ -398,8 +398,8 @@ asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *valu
 			driverName, functionName, status, function);
 	else
 		asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
-			"%s:%s: function=%d\n",
-			driverName, functionName, function);
+			"%s:%s: function=%d value=%lf\n",
+			driverName, functionName, function, *value);
 
 	return status;
 }
