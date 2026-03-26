@@ -9,6 +9,11 @@ Credits and licensing
 Original development of source code in this module from Diamond Light Source. Released under 
 the Apache V2 license. See LICENSE.
 
+Linkam SDK License
+------------------
+
+This support requires an SDK license from Linkam.  The license allows the SDK to be used on only two computers (one development and one production).  There is no offical way to unregister the SDK license from computers.  Contact Support@linkam.co.uk with questions about SDK license restrictions.
+
 Supported platforms
 -------------------
 
