@@ -1,6 +1,8 @@
 #include "asynPortDriver.h"
 #include <epicsEvent.h>
 
+#define DEFAULT_POLL_PERIOD_MS 100
+
 #define P_TempString          "LINKAM_TEMP"
 #define P_RampRateSetString   "LINKAM_RAMPRATE_SET"
 #define P_RampRateString      "LINKAM_RAMPRATE"
@@ -82,13 +84,42 @@
 #define P_TstForceKiString "LINKAM_TST_FORCE_KI"
 #define P_TstForceKdString "LINKAM_TST_FORCE_KD"
 
-
 // Position motor variables
 #define P_TstpVeloString "LINKAM_TSTP_VELO"
 #define P_TstpValString "LINKAM_TSTP_VAL"
 
 // Force motor variables 
 #define P_TstfValString "LINKAM_TSTF_VAL"
+
+// Vacuum stage parameters
+#define P_StartVacuumString   "LINKAM_START_VACUUM"
+#define P_VacuumSetString     "LINKAM_VACUUM_SET"
+#define P_VacuumString        "LINKAM_VACUUM"
+#define P_VacuumUnitSetString "LINKAM_VACUUM_UNIT_SET"
+#define P_VacuumUnitString    "LINKAM_VACUUM_UNIT"
+#define P_PressureString      "LINKAM_PRESSURE"
+
+// RHGen parameters
+#define P_StartHumidityString         "LINKAM_START_HUMIDITY"
+#define P_HumiditySetString           "LINKAM_HUMIDITY_SET"
+#define P_HumidityString              "LINKAM_HUMIDITY"
+#define P_HumidityTempString          "LINKAM_HUMIDITY_TEMP"
+#define P_HumiditySensorNameString    "LINKAM_HUMID_SENSOR_NAME"
+#define P_HumiditySensorSerialString  "LINKAM_HUMID_SENSOR_SERIAL"
+#define P_HumiditySensorHardVerString "LINKAM_HUMID_SENSOR_VERS"
+
+// Controller status bit parameters
+#define P_StatHtr1HeatingString       "LINKAM_STAT_HTR1_HEATING"
+#define P_StatHtr1AtSetPtString       "LINKAM_STAT_HTR1_ATSETPT"
+#define P_StatHtr2HeatingString       "LINKAM_STAT_HTR2_HEATING"
+#define P_StatHtr2AtSetPtString       "LINKAM_STAT_HTR2_ATSETPT"
+#define P_StatVacAtSetPtString       "LINKAM_STAT_VAC_ATSETPT"
+#define P_StatVacControlString       "LINKAM_STAT_VAC_CONTROL"
+#define P_StatHumAtSetPtString       "LINKAM_STAT_HUM_ATSETPT"
+#define P_StatHumControlString       "LINKAM_STAT_HUM_CONTROL"
+#define P_StatLnpPumpOnString        "LINKAM_STAT_LNP_PUMP_ON"
+#define P_StatLnpPumpAutoString      "LINKAM_STAT_LNP_PUMP_AUTO"
+#define P_StatHumDesCondString       "LINKAM_STAT_HUM_DES_COND"
 
 
 struct PositionMotorParams
@@ -115,6 +146,10 @@ public:
 	virtual asynStatus writeFloat64(asynUser *, epicsFloat64);
 	virtual asynStatus writeInt32(asynUser *, epicsInt32);
 	virtual asynStatus readInt32(asynUser *, epicsInt32 *);
+	asynStatus getStageValue(LinkamSDK::StageValueType stageValueType, epicsFloat64 *value);
+	// These should be private but are called from C
+	virtual void pollerThread(void);
+
 protected:
 	//epicsEventId eventId_;
 	int P_Temp;
@@ -204,7 +239,37 @@ protected:
 
     int P_TstfVal;
 
-    #define LAST_LINKAM_COMMAND P_TstStartMotor
+    // Vacuum stage parameters
+    int P_StartVacuum;
+    int P_VacuumSet;
+    int P_Vacuum;
+    int P_VacuumUnitSet;
+    int P_VacuumUnit;
+    int P_Pressure;
+
+    // RHGen parameters
+    int P_StartHumidity;
+    int P_HumiditySet;
+    int P_Humidity;
+    int P_HumidityTemp;
+    int P_HumiditySensorName;
+    int P_HumiditySensorSerial;
+    int P_HumiditySensorHardVer;
+
+    // Controller status bit parameters
+    int P_StatHtr1Heating;
+    int P_StatHtr1AtSetPt;
+    int P_StatHtr2Heating;
+    int P_StatHtr2AtSetPt;
+    int P_StatVacAtSetPt;
+    int P_StatVacControl;
+    int P_StatHumAtSetPt;
+    int P_StatHumControl;
+    int P_StatLnpPumpOn;
+    int P_StatLnpPumpAuto;
+    int P_StatHumDesCond;
+
+    #define LAST_LINKAM_COMMAND P_StatHumDesCond
 
     // Connection functions
     bool initUSBConnection(unsigned int vendorID, unsigned int productID);
@@ -224,6 +289,8 @@ private:
 	void rtrim(char *);
 	bool LNP_AutoMode;
 	int LNP_ManualSpeed;
+	LinkamSDK::Variant controllerStatus_;
+	int pollPeriod_;
     PositionMotorParams pMotorParams;
     ForceMotorParams fMotorParams;
 };

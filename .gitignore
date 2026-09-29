@@ -12,3 +12,5 @@ O.*
 doxygen
 tags
 iocs
+*_BAK.adl
+*.lsk

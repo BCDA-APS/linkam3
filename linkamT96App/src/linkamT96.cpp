@@ -6,12 +6,20 @@
 #include <string.h>
 #include "include/LinkamSDK.h"
 #include "include/CommsAPI.h"
+#include "include/Message.h"
 #include "linkamT96.h"
 #include "epicsThread.h"
 
 CommsHandle handle = 0;
 
 static const char *driverName = "linkamT96Driver";
+
+// This needs to come before the constructor to avoid compiler errors
+static void pollerThreadC(void * pPvt)
+{
+  linkamPortDriver *plinkamPortDriver = (linkamPortDriver *)pPvt;
+  plinkamPortDriver->pollerThread();
+}
 
 /*
  *
@@ -24,9 +32,9 @@ linkamPortDriver::linkamPortDriver(const char *portName)
 			 0, /* asynFlags */
 			 1, /* Autoconnect */
 			 0, /* Default priority */
-			 0) /* Default stack size */
+			 0), /* Default stack size */
+	pollPeriod_(DEFAULT_POLL_PERIOD_MS)
 {
-
 	// Sensible default move parameters
 	pMotorParams.demandPosition = 4000.0;
 	pMotorParams.demandVelocity = 500.0;
@@ -123,8 +131,172 @@ linkamPortDriver::linkamPortDriver(const char *portName)
     createParam(P_TstpVeloString, asynParamFloat64, &P_TstpVelo);
     createParam(P_TstpValString, asynParamFloat64, &P_TstpVal);
 
-	
     createParam(P_TstfValString, asynParamFloat64, &P_TstfVal);
+
+    createParam(P_StartVacuumString, asynParamInt32,   &P_StartVacuum);
+    createParam(P_VacuumSetString,   asynParamFloat64, &P_VacuumSet);
+    createParam(P_VacuumString,      asynParamFloat64, &P_Vacuum);
+    createParam(P_VacuumUnitSetString, asynParamInt32, &P_VacuumUnitSet);
+    createParam(P_VacuumUnitString,  asynParamInt32,   &P_VacuumUnit);
+    createParam(P_PressureString,    asynParamFloat64, &P_Pressure);
+
+    createParam(P_StartHumidityString,         asynParamInt32,   &P_StartHumidity);
+    createParam(P_HumiditySetString,           asynParamFloat64, &P_HumiditySet);
+    createParam(P_HumidityString,              asynParamFloat64, &P_Humidity);
+    createParam(P_HumidityTempString,          asynParamFloat64, &P_HumidityTemp);
+    createParam(P_HumiditySensorNameString,    asynParamOctet,   &P_HumiditySensorName);
+    createParam(P_HumiditySensorSerialString,  asynParamOctet,   &P_HumiditySensorSerial);
+    createParam(P_HumiditySensorHardVerString, asynParamOctet,   &P_HumiditySensorHardVer);
+    
+    createParam(P_StatHtr1HeatingString,         asynParamInt32,   &P_StatHtr1Heating);
+    createParam(P_StatHtr1AtSetPtString,         asynParamInt32,   &P_StatHtr1AtSetPt);
+    createParam(P_StatHtr2HeatingString,         asynParamInt32,   &P_StatHtr2Heating);
+    createParam(P_StatHtr2AtSetPtString,         asynParamInt32,   &P_StatHtr2AtSetPt);
+    createParam(P_StatVacAtSetPtString,          asynParamInt32,   &P_StatVacAtSetPt);
+    createParam(P_StatVacControlString,          asynParamInt32,   &P_StatVacControl);
+    createParam(P_StatHumAtSetPtString,          asynParamInt32,   &P_StatHumAtSetPt);
+    createParam(P_StatHumControlString,          asynParamInt32,   &P_StatHumControl);
+    createParam(P_StatLnpPumpOnString,           asynParamInt32,   &P_StatLnpPumpOn);
+    createParam(P_StatLnpPumpAutoString,         asynParamInt32,   &P_StatLnpPumpAuto);
+    createParam(P_StatHumDesCondString,          asynParamInt32,   &P_StatHumDesCond);
+
+    // Start the poller - this could be called explicitly from the iocsh if it should be optional
+    epicsThreadCreate("linkamPortDriverPoller",
+        epicsThreadPriorityLow,
+         epicsThreadGetStackSize(epicsThreadStackMedium),
+         (EPICSTHREADFUNC)pollerThreadC,
+         this);
+}
+
+/*
+ * poller
+ */
+void linkamPortDriver::pollerThread()
+{
+  /* This function runs in a separate thread.  It waits for the poll time. */
+  static const char *functionName = "pollerThread";
+  // Other variable declarations
+  LinkamSDK::Variant result;
+  bool retval;
+  int errorcode;
+  epicsFloat64 value;
+  asynStatus status = asynSuccess;
+
+  while (1)
+  {
+    lock();
+    
+    if (pollPeriod_ > 0)
+    {
+        // Get the controller status
+        retval = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStatus, handle, &result);
+        if (result.vControllerStatus.flags.controllerError) {
+            errorcode = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetControllerError, handle, &result);
+        
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+                "%s:%s: Controller Error %i: %s\n",
+                driverName, functionName, errorcode, LinkamSDK::ControllerErrorStrings[errorcode]);
+            
+            setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[errorcode]);
+        } else {
+            // Save the controller status as a field of the class, rather than an 
+            // asyn parameter, since channel access doesn't support 64-bit integers.
+            // Also, is it convenient to store the value in a LinkamSDK::Variant.
+            controllerStatus_ = result;
+            
+            // When there isn't a controller error, vControllerStatus.flags.controllerError should be zero, which is also eControllerErrorNone
+            setStringParam(P_CtrllrError, LinkamSDK::ControllerErrorStrings[controllerStatus_.vControllerStatus.flags.controllerError]);
+        }
+        
+        /* 
+         * Set the controller status parameters using the last good result
+         */
+        setIntegerParam(P_StatHtr1AtSetPt, controllerStatus_.vControllerStatus.flags.heater1RampSetPoint);
+        setIntegerParam(P_StatHtr1Heating, controllerStatus_.vControllerStatus.flags.heater1Started);
+        setIntegerParam(P_StatHtr2AtSetPt, controllerStatus_.vControllerStatus.flags.heater2RampSetPoint);
+        setIntegerParam(P_StatHtr2Heating, controllerStatus_.vControllerStatus.flags.heater2Started);
+        setIntegerParam(P_StatVacAtSetPt,  controllerStatus_.vControllerStatus.flags.vacuumRampSetPoint);
+        setIntegerParam(P_StatVacControl,  controllerStatus_.vControllerStatus.flags.vacuumCtrlStarted);
+        setIntegerParam(P_StatHumAtSetPt,  controllerStatus_.vControllerStatus.flags.humidityRampSetPoint);
+        setIntegerParam(P_StatHumControl,  controllerStatus_.vControllerStatus.flags.humidityCtrlStarted);
+        setIntegerParam(P_StatLnpPumpOn,   controllerStatus_.vControllerStatus.flags.lnpCoolingPumpOn);
+        setIntegerParam(P_StatLnpPumpAuto, controllerStatus_.vControllerStatus.flags.lnpCoolingPumpAuto);
+        setIntegerParam(P_StatHumDesCond,  controllerStatus_.vControllerStatus.flags.HumidityDesiccantConditioning);
+        
+        /*
+         * Query important values and publish the changes so that records can use SCAN = "I/O Intr"
+         */
+        
+        // Get the temperature
+        status = getStageValue(LinkamSDK::eStageValueTypeHeater1Temp, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_Temp, value);
+        }
+        
+        // Get the heater power
+        status = getStageValue(LinkamSDK::eStageValueTypeHeater1Power, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_Power, value);
+        }
+        
+        // Get the LN pump speed
+        status = getStageValue(LinkamSDK::eStageValueTypeHeater1LNPSpeed, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_LNPSpeed, value);
+        }
+        
+        // Get the pressure
+        status = getStageValue(LinkamSDK::eStageValueTypePressure, &value);
+        if (status == asynSuccess)
+        {
+            setDoubleParam(P_Pressure, value);
+        }
+        
+        callParamCallbacks();
+    }
+    
+    unlock();
+    
+    if (pollPeriod_ > 0)
+    {
+        // pollPeriod_ is in ms, but epicsTheadSleep needs s
+        epicsThreadSleep(pollPeriod_ / 1000.0);
+    } else {
+        // polling is disabled - wait until the poll period is changed (not yet implemented)
+        epicsThreadSleep(10.0);
+    }
+  }
+}
+
+asynStatus linkamPortDriver::getStageValue(LinkamSDK::StageValueType stageValueType, epicsFloat64 *value)
+{
+	LinkamSDK::Variant param1;
+	LinkamSDK::Variant param2;
+	LinkamSDK::Variant result;
+	const char *functionName = "getStageValue";
+	asynStatus status = asynSuccess;
+	
+	param1.vStageValueType = stageValueType;
+	
+	if (linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetValue, handle, &result, param1, param2)){
+		*value = result.vFloat32;
+	}else{
+		status = asynError;
+	}
+	
+	if (status)
+		epicsSnprintf(this->pasynUserSelf->errorMessage, this->pasynUserSelf->errorMessageSize,
+			"%s:%s: status=%d, stageValueType=%d",
+			driverName, functionName, status, stageValueType);
+	else
+		asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER,
+			"%s:%s: stageValueType=%d, value=%lf\n",
+			driverName, functionName, stageValueType, *value);
+	
+	return status;
 
 }
 
@@ -199,6 +371,14 @@ asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *valu
 		param1.vStageValueType = LinkamSDK::eStageValueTypeTstPidKi;
 	} else if (function == P_TstForceKd){
 		param1.vStageValueType = LinkamSDK::eStageValueTypeTstPidKd;
+	} else if (function == P_Vacuum) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeVacuum;
+	} else if (function == P_Pressure) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypePressure;
+	} else if (function == P_Humidity) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeHumidity;
+	} else if (function == P_HumidityTemp) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeHumidityTemp;
 	}
 
 	if (linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetValue, handle, &result, param1, param2)){
@@ -218,8 +398,8 @@ asynStatus linkamPortDriver::readFloat64(asynUser *pasynUser, epicsFloat64 *valu
 			driverName, functionName, status, function);
 	else
 		asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
-			"%s:%s: function=%d\n",
-			driverName, functionName, function);
+			"%s:%s: function=%d value=%lf\n",
+			driverName, functionName, function, *value);
 
 	return status;
 }
@@ -254,6 +434,12 @@ asynStatus linkamPortDriver::readOctet(asynUser *pasynUser, char *value, size_t 
 		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetControllerHardwareVersion;
 	} else if (function == P_CtrllrError) {
 		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetControllerError;
+	} else if (function == P_HumiditySensorName) {
+		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetHumidityControllerSensorName;
+	} else if (function == P_HumiditySensorSerial) {
+		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetHumidityControllerSensorSerial;
+	} else if (function == P_HumiditySensorHardVer) {
+		linkamMsgCode = LinkamSDK::eLinkamFunctionMsgCode_GetHumidityControllerSensorHardwareVersion;
 	}
 
   if(function == P_CtrllrError){
@@ -350,6 +536,10 @@ asynStatus linkamPortDriver::writeFloat64(asynUser *pasynUser, epicsFloat64 valu
         param1.vStageValueType = LinkamSDK::eStageValueTypeTstPidKi;
     } else if (function == P_TstForceKd) {
         param1.vStageValueType = LinkamSDK::eStageValueTypeTstPidKd;
+    } else if (function == P_VacuumSet) {
+        param1.vStageValueType = LinkamSDK::eStageValueTypeVacuumSetpoint;
+    } else if (function == P_HumiditySet) {
+        param1.vStageValueType = LinkamSDK::eStageValueTypeHumiditySetpoint;
     }
 
 
@@ -381,6 +571,7 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 	int function = pasynUser->reason;
 	const char *functionName = "writeInt32";
 	asynStatus status = asynSuccess;
+	bool retval;
 
 	if (function == P_StartHeating) {
 		param2.vUint64 = 0; /* unused */
@@ -391,8 +582,12 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 			param1.vBoolean = false;
 		}
 
-		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHeating,
+		retval = linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHeating,
 		                     handle, &result, param1, param2);
+		
+		asynPrint(pasynUser, ASYN_TRACE_ERROR,
+			"%s:%s: function=%d (P_Start_Heating) value = %i; retval = %s; result.vBoolean = %s\n",
+			driverName, functionName, function, value, retval ? "true" : "false", result.vBoolean ? "true" : "false");
 		
 		if (!result.vBoolean) {
 			status = asynError;
@@ -436,6 +631,53 @@ asynStatus linkamPortDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 			if (!result.vBoolean) {
 				status = asynError;
 			}
+		}
+	} else if (function == P_StartHumidity) {
+		param2.vUint64 = 0; /* unused */
+
+		if (value > 0){
+			param1.vBoolean = true;
+		} else {
+			param1.vBoolean = false;
+		}
+
+		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartHumidity,
+		                     handle, &result, param1, param2);
+
+		if (!result.vBoolean) {
+			status = asynError;
+		}
+	} else if (function == P_StartVacuum) {
+		param2.vUint64 = 0; /* unused */
+
+		if (value > 0){
+			param1.vBoolean = true;
+		} else {
+			param1.vBoolean = false;
+		}
+
+		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartVacuum,
+		                     handle, &result, param1, param2);
+
+		if (!result.vBoolean) {
+			status = asynError;
+		}
+	} else if (function == P_VacuumUnitSet) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeVacuumBoardUnitOfMeasure;
+
+		if (value < 15) {
+			param2.vUint32 = 15;
+		} else if (value > 17) {
+			param2.vUint32 = 17;
+		} else {
+			param2.vUint32 = value;
+		}
+
+		linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_SetValue,
+		                     handle, &result, param1, param2);
+
+		if (!result.vBoolean) {
+			status = asynError;
 		}
 	} else if (function == P_TstTableModeSet) {
         switch(value){
@@ -630,6 +872,13 @@ asynStatus linkamPortDriver::readInt32(asynUser *pasynUser, epicsInt32 *value)
 		} else {
 			status = asynError;
 		} 
+	} else if (function == P_VacuumUnit) {
+		param1.vStageValueType = LinkamSDK::eStageValueTypeVacuumBoardUnitOfMeasure;
+
+		if (linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetValue, handle, &result, param1, param2))
+			*value = result.vUint32;
+		else
+			status = asynError;
 	} 
     else if (function == P_SampleSize){
         param1.vStageValueType = LinkamSDK::eStageValueTypeTstSampleSize;
@@ -729,6 +978,8 @@ asynStatus linkamPortDriver::SetTstGotoMode(float position, float vel)
     linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_SetValue,    handle, &result, LinkamSDK::Variant(LinkamSDK::eStageValueTypeTstMotorVel),              LinkamSDK::Variant(vel),0);
     linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_SetValue,    handle, &result, LinkamSDK::Variant(LinkamSDK::eStageValueTypeTstMotorDistanceSetpoint), LinkamSDK::Variant(step),0);
     linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_StartMotors, handle, &result, LinkamSDK::Variant(true),axis,0);
+
+    return status;
 }
 
 //
@@ -760,6 +1011,7 @@ static void linkamStatus_CallFunc(const iocshArgBuf *args)
 	LinkamSDK::Variant result;
 	linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStatus, handle, &result);
 
+	printf("### Linkam Controller Status ###\n");
 	printf("controllerError               = %d\n", result.vControllerStatus.flags.controllerError);
 	printf("heater1RampSetPoint           = %d\n", result.vControllerStatus.flags.heater1RampSetPoint);
 	printf("heater1Started                = %d\n", result.vControllerStatus.flags.heater1Started);
@@ -792,6 +1044,79 @@ static void linkamStatus_CallFunc(const iocshArgBuf *args)
 	printf("cssZeroLimit                  = %d\n", result.vControllerStatus.flags.cssZeroLimit);
 }
 
+/*
+ * linkamConfig
+ */
+static const iocshArg * const linkamConfig_Args[0] = {};
+static const iocshFuncDef linkamConfig_FuncDef = { "linkamConfig", 0, linkamConfig_Args };
+
+static void linkamConfig_CallFunc(const iocshArgBuf *args)
+{
+	(void)args;
+	LinkamSDK::Variant result;
+	linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetControllerConfig, handle, &result);
+
+	printf("### Linkam Controller Config ###\n");
+	printf("supportsHeater                       = %d\n", result.vControllerConfig.flags.supportsHeater);
+	printf("supportsDualHeater                   = %d\n", result.vControllerConfig.flags.supportsDualHeater);
+	printf("supportsDualHeaterIndependentLimits  = %d\n", result.vControllerConfig.flags.supportsDualHeaterIndependentLimits);
+	printf("supportsDualHeaterIndependentRates   = %d\n", result.vControllerConfig.flags.supportsDualHeaterIndependentRates);
+	printf("vacuumOption                         = %d\n", result.vControllerConfig.flags.vacuumOption);
+	printf("tensileForceCardReady                = %d\n", result.vControllerConfig.flags.tensileForceCardReady);
+	printf("dscCardReady                         = %d\n", result.vControllerConfig.flags.dscCardReady);
+	printf("xMotorCardReady                      = %d\n", result.vControllerConfig.flags.xMotorCardReady);
+	printf("yMotorCardReady                      = %d\n", result.vControllerConfig.flags.yMotorCardReady);
+	printf("zMotorCardReady                      = %d\n", result.vControllerConfig.flags.zMotorCardReady);
+	printf("motorValveCardReady                  = %d\n", result.vControllerConfig.flags.motorValveCardReady);
+	printf("tensileMotorCardReady                = %d\n", result.vControllerConfig.flags.tensileMotorCardReady);
+	printf("gradedMotorCardReady                 = %d\n", result.vControllerConfig.flags.gradedMotorCardReady);
+	printf("dtcCardReady                         = %d\n", result.vControllerConfig.flags.dtcCardReady);
+	printf("cssMotorCardReady                    = %d\n", result.vControllerConfig.flags.cssMotorCardReady);
+	printf("lnpReady                             = %d\n", result.vControllerConfig.flags.lnpReady);
+	printf("lnpDualReady                         = %d\n", result.vControllerConfig.flags.lnpDualReady);
+	printf("humidityReady                        = %d\n", result.vControllerConfig.flags.humidityReady);
+}
+
+/*
+ * linkamStageConfig
+ */
+static const iocshArg * const linkamStageConfig_Args[0] = {};
+static const iocshFuncDef linkamStageConfig_FuncDef = { "linkamStageConfig", 0, linkamStageConfig_Args };
+
+static void linkamStageConfig_CallFunc(const iocshArgBuf *args)
+{
+	(void)args;
+	LinkamSDK::Variant result;
+	linkamProcessMessage(LinkamSDK::eLinkamFunctionMsgCode_GetStageConfig, handle, &result);
+
+	printf("### Linkam Stage Config ###\n");
+	printf("standardStage              = %d\n", result.vStageConfig.flags.standardStage);
+	printf("highTempStage              = %d\n", result.vStageConfig.flags.highTempStage);
+	printf("peltierStage               = %d\n", result.vStageConfig.flags.peltierStage);
+	printf("gradedStage                = %d\n", result.vStageConfig.flags.gradedStage);
+	printf("tensileStage               = %d\n", result.vStageConfig.flags.tensileStage);
+	printf("dscStage                   = %d\n", result.vStageConfig.flags.dscStage);
+	printf("warmStage                  = %d\n", result.vStageConfig.flags.warmStage);
+	printf("itoStage                   = %d\n", result.vStageConfig.flags.itoStage);
+	printf("css450Stage                = %d\n", result.vStageConfig.flags.css450Stage);
+	printf("correlativeStage           = %d\n", result.vStageConfig.flags.correlativeStage);
+	printf("coolingManual              = %d\n", result.vStageConfig.flags.coolingManual);
+	printf("coolingAutomatic           = %d\n", result.vStageConfig.flags.coolingAutomatic);
+	printf("coolingDual                = %d\n", result.vStageConfig.flags.coolingDual);
+	printf("coolingDualSpeedIndependent= %d\n", result.vStageConfig.flags.coolingDualSpeedIndependent);
+	printf("heater1                    = %d\n", result.vStageConfig.flags.heater1);
+	printf("heater1TempCtrl            = %d\n", result.vStageConfig.flags.heater1TempCtrl);
+	printf("heater1TempCtrlProbe       = %d\n", result.vStageConfig.flags.heater1TempCtrlProbe);
+	printf("heater2                    = %d\n", result.vStageConfig.flags.heater2);
+	printf("heater12IndependentLimits  = %d\n", result.vStageConfig.flags.heater12IndependentLimits);
+	printf("waterCoolingSensorFitted   = %d\n", result.vStageConfig.flags.waterCoolingSensorFitted);
+	printf("home                       = %d\n", result.vStageConfig.flags.home);
+	printf("supportsVacuum             = %d\n", result.vStageConfig.flags.supportsVacuum);
+	printf("motorX                     = %d\n", result.vStageConfig.flags.motorX);
+	printf("motorY                     = %d\n", result.vStageConfig.flags.motorY);
+	printf("motorZ                     = %d\n", result.vStageConfig.flags.motorZ);
+	printf("supportsHumidity           = %d\n", result.vStageConfig.flags.supportsHumidity);
+}
 
 /*
  * linkamConnect
@@ -870,6 +1195,8 @@ static void linkamConnect_CallFunc(const iocshArgBuf *args)
 void linkamRegistrar(void)
 {
 	iocshRegister(&linkamStatus_FuncDef, linkamStatus_CallFunc);
+	iocshRegister(&linkamConfig_FuncDef, linkamConfig_CallFunc);
+	iocshRegister(&linkamStageConfig_FuncDef, linkamStageConfig_CallFunc);
 	iocshRegister(&linkamConnect_FuncDef, linkamConnect_CallFunc);
 }
 
